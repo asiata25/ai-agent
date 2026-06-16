@@ -1,0 +1,8 @@
+openai-agents
+python-dotenv
+aiosqlite
+greenlet
+matplotlib
+pandas
+sqlalchemy
+sqlmodel

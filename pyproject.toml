@@ -1,8 +1,14 @@
 [project]
 name = "ai-agent"
 version = "0.1.0"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
-    "openai-agents[any-llm,any-llm-model,anyllm]>=0.8.4",
+    "openai-agents[any-llm]>=0.8.4",
     "python-dotenv>=1.2.1",
+    "aiosqlite>=0.20.0",
+    "greenlet>=3.0.0",
+    "matplotlib>=3.8.0",
+    "pandas>=2.2.0",
+    "sqlalchemy>=2.0.0",
+    "sqlmodel>=0.0.22",
 ]

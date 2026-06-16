@@ -17,21 +17,17 @@ assignment_4_coding_agent/
 ├── app/
 │   ├── main.py
 │   ├── models.py
-│   └── tools.py
-├── example/
-│   ├── sales_monthly.csv
-│   ├── population_by_country.csv
-│   ├── product_category_share.csv
-│   ├── temperature_trend.csv
-│   └── employee_performance.csv
-├── output/              ← agent saves chart files here
-├── tmp/workspace/       ← agent's general file sandbox
+│   ├── tools.py
+│   └── llm_models.py
 ├── .env
 ├── .gitignore
-└── requirements.txt
+├── database.db
+├── pyproject.toml
+├── uv.lock
+└── Makefile
 ```
 
-> Note: The `app/` subfolder mirrors the structure your instructor used (visible in the screenshot with `app/main.py`, `app/tools.py`). `models.py` lives alongside `main.py` inside `app/`.
+> Note: This PRD follows the instructor-style layout shown in the screenshots. The `app/` folder contains the main entrypoint, model setup, tool definitions, and model configuration side by side.
 
 
 ## Example CSV Files
@@ -77,72 +73,54 @@ Chart saved to: output/sales_monthly_chart.png
 ### `app/main.py`
 Entry point and agent orchestrator.
 
-- On startup, scans the `example/` folder and lists all `.csv` files
-- Prompts the user to pick a file by number
-- Passes the chosen filename to the agent via `Runner.run_streamed()`
-- Handles `runner.stream_events()` to stream the agent's reasoning and output to the terminal
-- Initializes `SQLAlchemySession` from `app/models.py` for persistent memory
-- Wraps everything in `asyncio.run(run_agent())`
+- Imports the configured model from `app/llm_models.py`
+- Creates the `Agent` and wires in the tools from `app/tools.py`
+- Streams the agent response with `Runner.run_streamed()`
+- Keeps the terminal loop in `asyncio.run(run_agent())`
 
 ### `app/models.py`
 Database setup only.
 
-- Creates and exports the async SQLite engine:
+- Creates and exports the async SQLite engine with:
   ```python
   create_async_engine("sqlite+aiosqlite:///database.db")
   ```
-- Imported by `main.py` to initialize the memory session
+- Imported by `main.py` for persistent storage
 - No agent logic lives here
 
 ### `app/tools.py`
 Defines all agent tools.
 
-**Tool 1: `read_csv(filename: str) -> str`**
-- Reads the specified file from the `example/` folder
-- Returns a string summary of the CSV structure: column names, data types, row count, and first 3 rows as a sample
-- This is what the agent uses to analyze the data before choosing a chart type
+- Contains the instructor-style function tools, including file write/edit helpers and a shell command executor
+- Restricts file operations to the workspace path used by the agent
+- Uses `@function_tool` so the agent can call the tools directly
 
-**Tool 2: `save_chart(filename: str, chart_code: str) -> str`**
-- Receives the chart-generating Python code from the agent
-- Executes the code using `exec()` or writes it to `tmp/workspace/` and runs it with `subprocess`
-- Saves the final chart image to `output/<filename>_chart.png`
-- Returns the output path as confirmation
+### `app/llm_models.py`
+Model configuration only.
 
-### `example/` folder
-Contains the 5 pre-made CSV files. These are static — the agent reads but never writes to this folder.
-
-### `output/` folder
-Where all generated chart images are saved. Include a `.gitkeep` file so the folder is tracked in Git but its contents are ignored.
-
-### `tmp/workspace/`
-General sandbox for any intermediate files the agent writes. Follow the same pattern as the instructor — restrict all write operations to this path.
+- Holds the model object or model name used by the agent
+- Keeps provider-specific setup out of `main.py`
 
 ### `.env`
-Stores `OPENAI_API_KEY`. Never committed to Git.
+Stores `API_KEY` and `API_URL` for the LLM model. Never committed to Git. An example `.example.env` is provided.
 
 ### `.gitignore`
 Must exclude:
 ```
 .env
 database.db
-output/*.png
-tmp/
 __pycache__/
 *.pyc
 .venv/
 ```
 
-### `requirements.txt`
-```
-openai-agents
-sqlmodel
-sqlalchemy
-aiosqlite
-greenlet
-python-dotenv
-matplotlib
-pandas
-```
+### `pyproject.toml`
+Defines project dependencies using `uv`. Requires Python `>=3.11` for `any-llm-sdk` compatibility.
+Key dependencies:
+- `openai-agents[any-llm]`
+- `python-dotenv`
+- `aiosqlite`, `sqlalchemy`, `sqlmodel`, `greenlet`
+- `matplotlib`, `pandas`
 
 
 ## Agent Behavior Specification
@@ -173,14 +151,11 @@ You are a data visualization expert. When given a CSV filename:
 
 ## Acceptance Criteria
 
-- [ ] Uses `openai-agents` SDK (`Agent`, `Runner`, `runner.stream_events()`) — not the basic `openai` SDK
-- [ ] Persistent memory via `SQLAlchemySession` with `sqlite+aiosqlite:///database.db`
-- [ ] On startup, lists all 5 CSV files from `example/` and prompts user to choose
-- [ ] Agent reads the chosen CSV using the `read_csv` tool
-- [ ] Agent explains its chart type choice in plain language before generating
-- [ ] Agent generates the chart and saves it to `output/` using the `save_chart` tool
-- [ ] Generated chart includes a title, labeled axes (where applicable), and is readable
-- [ ] No files are written outside `tmp/workspace/` or `output/`
+- [ ] Uses the instructor-style `app/main.py`, `app/models.py`, `app/tools.py`, and `app/llm_models.py` layout
+- [ ] Persistent memory uses `sqlite+aiosqlite:///database.db`
+- [ ] Agent tools are defined in `app/tools.py` with `@function_tool`
+- [ ] Model setup stays isolated in `app/llm_models.py`
+- [ ] No files are written outside the workspace path used by the tools
 - [ ] `.env` and `database.db` are excluded from the GitHub repo via `.gitignore`
 - [ ] Code is pushed to a public GitHub repository
 
