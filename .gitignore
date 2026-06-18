@@ -2,6 +2,7 @@
 database.db
 database.db-shm
 database.db-wal
+dump.rdb
 __pycache__/
 *.pyc
 .venv/

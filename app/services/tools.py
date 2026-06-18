@@ -12,17 +12,17 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from agents import function_tool
 
-from app.core.config import WORKSPACE_ROOT, EXAMPLE_DIR, OUTPUT_DIR
+from app.core.settings import settings
 
 
 def _resolve_workspace_path(path: str) -> Path:
     candidate = Path(path)
     if not candidate.is_absolute():
-        candidate = WORKSPACE_ROOT / candidate
+        candidate = settings.workspace_root / candidate
     resolved = candidate.resolve()
 
     try:
-        resolved.relative_to(WORKSPACE_ROOT)
+        resolved.relative_to(settings.workspace_root)
     except ValueError as exc:
         raise ValueError(f"Path must stay inside the workspace: {path}") from exc
 
@@ -31,7 +31,7 @@ def _resolve_workspace_path(path: str) -> Path:
 
 def _resolve_example_csv(file_name: str) -> Path:
     candidate = _resolve_workspace_path(Path("example") / file_name)
-    if candidate.parent != EXAMPLE_DIR:
+    if candidate.parent != settings.example_dir:
         raise ValueError("CSV files must come from the example/ folder")
     if candidate.suffix.lower() != ".csv":
         raise ValueError("Only CSV files are supported")
@@ -120,9 +120,9 @@ def generate_chart(file_name: str, chart_type: str) -> str:
     """Generate and save a chart for a CSV file from the example folder."""
     dataframe = _prepare_dataframe(file_name)
     chart_type = _clean_chart_type(chart_type)
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    settings.output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_path = OUTPUT_DIR / f"{Path(file_name).stem}_chart.png"
+    output_path = settings.output_dir / f"{Path(file_name).stem}_chart.png"
     title = _format_title(file_name, chart_type)
 
     plt.style.use("seaborn-v0_8-whitegrid")
@@ -212,7 +212,7 @@ def generate_chart(file_name: str, chart_type: str) -> str:
     fig.autofmt_xdate()
     fig.savefig(output_path, dpi=160)
     plt.close(fig)
-    return f"Chart saved to: {output_path.relative_to(WORKSPACE_ROOT)}"
+    return f"Chart saved to: {output_path.relative_to(settings.workspace_root)}"
 
 
 @function_tool
@@ -221,7 +221,7 @@ def write_file(path: str, content: str) -> str:
     file_path = _resolve_workspace_path(path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(content, encoding="utf-8")
-    return f"Wrote {file_path.relative_to(WORKSPACE_ROOT)}"
+    return f"Wrote {file_path.relative_to(settings.workspace_root)}"
 
 
 @function_tool
@@ -231,10 +231,10 @@ def edit_file(path: str, old: str, new: str) -> str:
     content = file_path.read_text(encoding="utf-8")
 
     if old not in content:
-        return f"Text not found in {file_path.relative_to(WORKSPACE_ROOT)}"
+        return f"Text not found in {file_path.relative_to(settings.workspace_root)}"
 
     file_path.write_text(content.replace(old, new), encoding="utf-8")
-    return f"Edited {file_path.relative_to(WORKSPACE_ROOT)}"
+    return f"Edited {file_path.relative_to(settings.workspace_root)}"
 
 
 @function_tool
@@ -243,7 +243,7 @@ def exec_command(command: str) -> str:
     completed = subprocess.run(
         command,
         shell=True,
-        cwd=WORKSPACE_ROOT,
+        cwd=settings.workspace_root,
         capture_output=True,
         text=True,
     )

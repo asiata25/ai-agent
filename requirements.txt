@@ -8,3 +8,6 @@ sqlalchemy
 sqlmodel
 fastapi
 uvicorn
+celery
+redis
+pydantic-settings

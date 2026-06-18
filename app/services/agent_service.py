@@ -6,7 +6,7 @@ from agents import Agent, Runner
 from agents.memory.sqlite_session import SQLiteSession
 
 from app.llm_models import model
-from app.core.config import WORKSPACE_ROOT, DB_PATH
+from app.core.settings import settings
 from app.db.models import VisualizationHistory
 from app.services.tools import read_csv, save_chart
 
@@ -57,7 +57,7 @@ async def run_agent_visualization(
         print(f"Requested Chart Type: {requested_chart_type}", flush=True)
     print(f"Prompt sent: {user_prompt}\n", flush=True)
 
-    session = SQLiteSession(session_id=session_id, db_path=DB_PATH)
+    session = SQLiteSession(session_id=session_id, db_path=settings.db_path)
     explanation_parts = []
     chosen_chart_type = None
 
@@ -109,19 +109,32 @@ async def run_agent_visualization(
         output_image_path = f"output/{stem}_chart.png"
 
         # Record visualization run history
-        history = VisualizationHistory(
-            session_id=session_id,
-            csv_file=csv_name,
-            chart_type=requested_chart_type,
-            chosen_chart_type=chosen_chart_type or (requested_chart_type or "unknown"),
-            output_image_path=output_image_path,
-            explanation=explanation,
-            status="SUCCESS",
-            error_message=None,
-        )
-        db.add(history)
+        from sqlalchemy.future import select
+        stmt = select(VisualizationHistory).where(VisualizationHistory.session_id == session_id)
+        res = await db.execute(stmt)
+        history = res.scalar_one_or_none()
+
+        if history:
+            history.chosen_chart_type = chosen_chart_type or (requested_chart_type or "unknown")
+            history.output_image_path = output_image_path
+            history.explanation = explanation
+            history.status = "SUCCESS"
+            history.error_message = None
+        else:
+            history = VisualizationHistory(
+                session_id=session_id,
+                csv_file=csv_name,
+                chart_type=requested_chart_type,
+                chosen_chart_type=chosen_chart_type or (requested_chart_type or "unknown"),
+                output_image_path=output_image_path,
+                explanation=explanation,
+                status="SUCCESS",
+                error_message=None,
+            )
+            db.add(history)
         await db.commit()
-        await db.refresh(history)
+        if history.id is None:
+            await db.refresh(history)
 
         return {
             "status": "SUCCESS",
@@ -138,17 +151,26 @@ async def run_agent_visualization(
         print(f"\n[Error] Failed to run agent: {e}", flush=True)
         
         # Save failure to DB
-        history = VisualizationHistory(
-            session_id=session_id,
-            csv_file=csv_name,
-            chart_type=requested_chart_type,
-            chosen_chart_type=None,
-            output_image_path=None,
-            explanation=None,
-            status="FAILED",
-            error_message=str(e),
-        )
-        db.add(history)
+        from sqlalchemy.future import select
+        stmt = select(VisualizationHistory).where(VisualizationHistory.session_id == session_id)
+        res = await db.execute(stmt)
+        history = res.scalar_one_or_none()
+
+        if history:
+            history.status = "FAILED"
+            history.error_message = str(e)
+        else:
+            history = VisualizationHistory(
+                session_id=session_id,
+                csv_file=csv_name,
+                chart_type=requested_chart_type,
+                chosen_chart_type=None,
+                output_image_path=None,
+                explanation=None,
+                status="FAILED",
+                error_message=str(e),
+            )
+            db.add(history)
         await db.commit()
         
         return {

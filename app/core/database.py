@@ -1,9 +1,9 @@
 from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from app.core.config import DATABASE_URL
+from app.core.settings import settings
 
 # Create async database engine
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(settings.database_url, echo=True)
 
 # Session factory for async database sessions
 AsyncSessionLocal = async_sessionmaker(

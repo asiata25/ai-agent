@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.database import init_db
-from app.api.endpoints import router as api_router
+from app.modules.visualization.router import router as visualization_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,7 +17,7 @@ app = FastAPI(
 )
 
 # Register endpoints
-app.include_router(api_router)
+app.include_router(visualization_router)
 
 if __name__ == "__main__":
     import uvicorn

@@ -53,12 +53,53 @@ API_KEY=your_api_key_here
 API_URL=https://your-custom-url.com
 ```
 
-### 4. Start the Server
-Start the development server with:
+### 4. Start the Services Using Makefile
+
+The project includes a `Makefile` to simplify starting and managing all required services (Redis, Celery background worker, and FastAPI server). You can choose to run them in the foreground (recommended for development) or in the background.
+
+#### Option A: Run in the Foreground (Interactive Logs)
+Start each service in a separate terminal tab/window to monitor their real-time log outputs directly:
+1. **Start Redis**:
+   ```bash
+   make redis
+   ```
+2. **Start the Celery Worker**:
+   ```bash
+   make worker
+   ```
+3. **Start the FastAPI Server**:
+   ```bash
+   make app
+   ```
+
+#### Option B: Run in the Background (Daemonized)
+Start all three services concurrently in the background as background processes:
 ```bash
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+make start
 ```
-On startup, the app automatically initializes/verifies the SQLite database schemas in `database.db`.
+
+#### Viewing Logs (For Background Services)
+If running services in the background, you can tail their log files at any time using:
+*   **FastAPI logs**:
+    ```bash
+    make logs-app
+    ```
+*   **Celery worker logs**:
+    ```bash
+    make logs-worker
+    ```
+
+#### Checking Status
+To inspect the status of the local Redis server and running python processes (`celery`/`uvicorn`), run:
+```bash
+make status
+```
+
+#### Stopping Services
+To shut down the Redis daemon, Uvicorn server, and Celery worker processes, run:
+```bash
+make stop
+```
 
 ---
 
