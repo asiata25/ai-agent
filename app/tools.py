@@ -16,6 +16,7 @@ from agents import function_tool
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_DIR = WORKSPACE_ROOT / "example"
 OUTPUT_DIR = WORKSPACE_ROOT / "output"
+SUPPORTED_CHART_TYPES = {"line", "bar", "pie", "area", "horizontal bar"}
 
 
 def _resolve_workspace_path(path: str) -> Path:
@@ -53,6 +54,20 @@ def _clean_chart_type(chart_type: str) -> str:
         "hbar": "horizontal bar",
     }
     return aliases.get(normalized, normalized)
+
+
+def validate_csv_file(file_name: str) -> None:
+    """Validate that a CSV file exists in the example folder."""
+    _resolve_example_csv(file_name)
+
+
+def normalize_chart_type(chart_type: str) -> str:
+    """Normalize and validate a supported chart type."""
+    normalized = _clean_chart_type(chart_type)
+    if normalized not in SUPPORTED_CHART_TYPES:
+        supported = ", ".join(sorted(SUPPORTED_CHART_TYPES))
+        raise ValueError(f"Unsupported chart_type. Use one of: {supported}")
+    return normalized
 
 
 def _prepare_dataframe(file_name: str) -> pd.DataFrame:
@@ -122,7 +137,7 @@ def inspect_csv(file_name: str) -> str:
 def generate_chart(file_name: str, chart_type: str) -> str:
     """Generate and save a chart for a CSV file from the example folder."""
     dataframe = _prepare_dataframe(file_name)
-    chart_type = _clean_chart_type(chart_type)
+    chart_type = normalize_chart_type(chart_type)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     output_path = OUTPUT_DIR / f"{Path(file_name).stem}_chart.png"
@@ -194,7 +209,7 @@ def generate_chart(file_name: str, chart_type: str) -> str:
             raise ValueError("Area charts require numeric data")
         ax.set_title(title)
 
-    else:
+    elif chart_type == "line":
         if not numeric_columns:
             raise ValueError("Line charts require at least one numeric column")
 
@@ -210,6 +225,8 @@ def generate_chart(file_name: str, chart_type: str) -> str:
         ax.set_title(title)
         if len(numeric_columns) > 1:
             ax.legend()
+    else:
+        raise ValueError(f"Unsupported chart type: {chart_type}")
 
     fig.tight_layout()
     fig.autofmt_xdate()

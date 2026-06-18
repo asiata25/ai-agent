@@ -5,12 +5,5 @@ database.db-wal
 __pycache__/
 *.pyc
 .venv/
-output/.env
-database.db
-database.db-shm
-database.db-wal
-__pycache__/
-*.pyc
-.venv/
 tmp/
 output/

@@ -1,18 +1,22 @@
 # AI Chart Visualization Agent
 
-A terminal-based AI agent built using the **OpenAI Agents SDK** that autonomously visualizes CSV data. The agent reads a CSV file, determines the most appropriate chart type for the dataset, explains its reasoning, and then generates the chart using Matplotlib.
+A FastAPI-based REST API service that uses the **OpenAI Agents SDK** to autonomously visualize CSV data. The agent reads a CSV file, determines the most appropriate chart type for the dataset, explains its reasoning, and generates the chart using Matplotlib.
 
 ## Prerequisites
 
 - Python 3.11 or higher
-- [uv](https://github.com/astral-sh/uv) (for dependency management)
+- [uv](https://github.com/astral-sh/uv) (for dependency management) or pip
+- OpenAI API key with GPT-4.1-mini access
 
 ## Setup
 
 1. **Install dependencies:**
-   The project uses `uv` for lightning-fast package management.
    ```bash
    uv sync
+   ```
+   Or with pip:
+   ```bash
+   pip install -r requirements.txt
    ```
 
 2. **Environment Variables:**
@@ -22,46 +26,141 @@ A terminal-based AI agent built using the **OpenAI Agents SDK** that autonomousl
    ```
    Open `.env` and configure:
    ```env
-   API_KEY=your_api_key_here
-   API_URL=https://your-custom-url.com
+   OPENAI_API_KEY=sk-your_api_key_here
    ```
 
 ## Usage
 
-Run the agent interactively using:
+Start the API server:
 
 ```bash
-uv run python -m app.main
+uv run uvicorn app.api:app --reload
 ```
 
-You will be presented with a list of example CSV files. Enter the number corresponding to the file you wish to visualize. 
+The API will be available at `http://localhost:8000`
 
-The agent will:
-1. Load and read the CSV.
-2. Analyze the columns, rows, and data types.
-3. Stream its thought process, concluding with the optimal chart type (e.g., Pie Chart, Horizontal Bar, Line Chart).
-4. Save the generated chart to the `output/` directory.
+### API Endpoints
+
+#### 1. Health Check
+```bash
+curl http://localhost:8000/health
+```
+
+Response:
+```json
+{"status": "ok"}
+```
+
+#### 2. Create Visualization
+```bash
+curl -X POST http://localhost:8000/visualize \
+  -H "Content-Type: application/json" \
+  -d '{"csv_file": "sales_monthly.csv"}'
+```
+
+Request body:
+```json
+{
+  "csv_file": "sales_monthly.csv",
+  "chart_type": "line",
+  "session_id": "optional-custom-session-id"
+}
+```
+
+Response (success):
+```json
+{
+  "status": "success",
+  "session_id": "chart-viz-a1b2c3d4",
+  "history_id": 1,
+  "csv_file": "sales_monthly.csv",
+  "chart_type": "line",
+  "output_path": "output/sales_monthly_chart.png",
+  "message": "Visualization for sales_monthly.csv completed successfully",
+  "error": null
+}
+```
+
+Response (error):
+```json
+{
+  "status": "error",
+  "session_id": "chart-viz-a1b2c3d4",
+  "history_id": 1,
+  "csv_file": "sales_monthly.csv",
+  "chart_type": "line",
+  "output_path": null,
+  "message": "Visualization failed",
+  "error": "CSV file not found"
+}
+```
+
+#### 3. Visualization History
+```bash
+curl http://localhost:8000/history
+```
+
+Response:
+```json
+[
+  {
+    "id": 1,
+    "session_id": "chart-viz-a1b2c3d4",
+    "csv_file": "sales_monthly.csv",
+    "chart_type": "line",
+    "status": "success",
+    "error_message": null,
+    "created_at": "2026-06-18T09:00:00",
+    "completed_at": "2026-06-18T09:00:05"
+  }
+]
+```
+
+### Available CSV Files
+
+The agent can visualize CSV files located in the `example/` directory:
+- `employee_performance.csv`
+- `population_by_country.csv`
+- `product_category_share.csv`
+- `sales_monthly.csv`
+- `temperature_trend.csv`
 
 ## Architecture
 
-- `app/main.py`: Entry point. Wires up the agent, reads example files, and handles the streaming output.
-- `app/llm_models.py`: Model configuration, currently configured for `AnyLLMModel`.
-- `app/tools.py`: Agent tools (`read_csv`, `save_chart`). Matplotlib is explicitly configured to use the headless `Agg` backend for seamless background generation.
-- `app/models.py`: Async SQLite database setup for agent memory.
+- `app/api.py`: FastAPI application with REST endpoints.
+- `app/main.py`: Core orchestration logic for visualization agent.
+- `app/llm_models.py`: OpenAI model configuration with validation.
+- `app/tools.py`: Agent tools (`read_csv`, `save_chart`). Matplotlib is configured with the headless `Agg` backend.
+- `app/models.py`: Async SQLite database setup and schema for visualization history.
 
-## Example Output
+## Database
 
-```text
-Available CSV files in example/:
-  1. employee_performance.csv
-  2. population_by_country.csv
-  3. product_category_share.csv
-  4. sales_monthly.csv
-  5. temperature_trend.csv
-Enter the number of the file you want to visualize: 3
+The agent maintains a SQLite database (`database.db`) that tracks visualization requests and outcomes. The database is automatically initialized on API startup.
 
-...
-Agent: The best chart type for this data would be a pie chart because the data represents parts of a whole (market share percentages that sum to 100%).
-Chart Choice: Pie Chart
-...
-```
+### Schema
+
+**visualization_history** table:
+- `id`: Primary key
+- `session_id`: Unique session identifier
+- `csv_file`: Name of the CSV file processed
+- `chart_type`: Type of chart generated
+- `status`: Request status (pending, success, failed)
+- `error_message`: Error details if status is failed
+- `created_at`: Timestamp of request creation
+- `completed_at`: Timestamp of completion
+
+## Error Handling
+
+The API provides clear error messages for common issues:
+
+- **400 Bad Request**: Invalid CSV file format, unsupported chart type, or missing required fields
+- **404 Not Found**: CSV file does not exist in the `example/` folder
+- **500 Internal Server Error**: OpenAI API failures or runtime errors
+
+All errors include detailed messages to aid debugging.
+
+## Interactive API Documentation
+
+Once the server is running, visit:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc

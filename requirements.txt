@@ -1,8 +1,11 @@
 openai-agents
 python-dotenv
 aiosqlite
+fastapi
 greenlet
 matplotlib
 pandas
+pydantic
 sqlalchemy
 sqlmodel
+uvicorn[standard]

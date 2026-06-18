@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build a terminal-based AI agent using the **OpenAI Agents SDK** that reads CSV files from an `example/` folder, presents them to the user as choices, then autonomously selects the best chart type to visualize the chosen file — explaining its reasoning — and saves the output chart to an `output/` folder.
+Build a FastAPI-based AI agent service using the **OpenAI Agents SDK** that accepts CSV visualization requests over HTTP, reads CSV files from an `example/` folder, autonomously selects or validates the chart type, explains its reasoning internally through the agent workflow, saves the output chart to an `output/` folder, and records request history in SQLite.
 
 
 ## Objective
@@ -15,16 +15,16 @@ The agent acts as a **data visualization assistant**. It does not just write cod
 ```
 assignment_4_coding_agent/
 ├── app/
+│   ├── api.py
 │   ├── main.py
 │   ├── models.py
 │   ├── tools.py
 │   └── llm_models.py
 ├── .env
 ├── .gitignore
-├── database.db
 ├── pyproject.toml
-├── uv.lock
-└── Makefile
+├── requirements.txt
+└── uv.lock
 ```
 
 > Note: This PRD follows the instructor-style layout shown in the screenshots. The `app/` folder contains the main entrypoint, model setup, tool definitions, and model configuration side by side.
@@ -45,26 +45,12 @@ Each file should have clear, distinct data shapes so the agent can meaningfully 
 
 ## User Flow
 
-```
-$ python -m app.main
+```bash
+uv run uvicorn app.api:app --reload
 
-Available CSV files in example/:
-  1. sales_monthly.csv
-  2. population_by_country.csv
-  3. product_category_share.csv
-  4. temperature_trend.csv
-  5. employee_performance.csv
-
-Enter the number of the file you want to visualize: 1
-
-[Agent thinking...]
-Agent: I analyzed sales_monthly.csv. It contains time-series data with a Month
-column and a Revenue column across 12 data points. I chose a LINE CHART because
-the data represents a continuous trend over ordered time intervals — a line chart
-best communicates the trajectory and momentum of the values.
-
-Generating chart...
-Chart saved to: output/sales_monthly_chart.png
+curl -X POST http://localhost:8000/visualize \
+  -H "Content-Type: application/json" \
+  -d '{"csv_file": "sales_monthly.csv"}'
 ```
 
 
@@ -102,7 +88,7 @@ Model configuration only.
 - Keeps provider-specific setup out of `main.py`
 
 ### `.env`
-Stores `API_KEY` and `API_URL` for the LLM model. Never committed to Git. An example `.example.env` is provided.
+Stores `OPENAI_API_KEY`. Never committed to Git.
 
 ### `.gitignore`
 Must exclude:
@@ -114,13 +100,20 @@ __pycache__/
 .venv/
 ```
 
-### `pyproject.toml`
-Defines project dependencies using `uv`. Requires Python `>=3.11` for `any-llm-sdk` compatibility.
-Key dependencies:
-- `openai-agents[any-llm]`
-- `python-dotenv`
-- `aiosqlite`, `sqlalchemy`, `sqlmodel`, `greenlet`
-- `matplotlib`, `pandas`
+### `requirements.txt`
+```
+openai-agents
+fastapi
+uvicorn[standard]
+pydantic
+sqlmodel
+sqlalchemy
+aiosqlite
+greenlet
+python-dotenv
+matplotlib
+pandas
+```
 
 
 ## Agent Behavior Specification
