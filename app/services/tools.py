@@ -12,10 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from agents import function_tool
 
-
-WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE_DIR = WORKSPACE_ROOT / "example"
-OUTPUT_DIR = WORKSPACE_ROOT / "output"
+from app.core.config import WORKSPACE_ROOT, EXAMPLE_DIR, OUTPUT_DIR
 
 
 def _resolve_workspace_path(path: str) -> Path:

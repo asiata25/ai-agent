@@ -6,3 +6,5 @@ matplotlib
 pandas
 sqlalchemy
 sqlmodel
+fastapi
+uvicorn

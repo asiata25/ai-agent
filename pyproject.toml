@@ -11,4 +11,6 @@ dependencies = [
     "pandas>=2.2.0",
     "sqlalchemy>=2.0.0",
     "sqlmodel>=0.0.22",
+    "fastapi>=0.137.1",
+    "uvicorn>=0.49.0",
 ]
